@@ -11,6 +11,8 @@ class fidelisThreatBridge:
         self.fidelisEndpoint = fidelisEndpoint
         self.lastError = ""
         self.lastSuccess = ""
+        self.checkURL = False
+        self.ignoressl = True
         now = datetime.now()
         self.threatBridgeURL = "{0}/threatbridge".format(self.fidelisEndpoint.baseURL)
 
@@ -138,11 +140,12 @@ class fidelisThreatBridge:
             self.lastError = "No updating method defined"
             return False
         url = "{0}/addFeed".format(self.threatBridgeURL)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.fidelisEndpoint.headers
         bodyRequest = {"useWithProcessBlocking": feedData["useWithProcessBlocking"], "updatingMethod":feedData["updatingMethod"],"feedParserSettings":{},"hasCsvHeaderRow":feedData["hasCsvHeaderRow"],"fieldMappings":feedData["fieldMappings"],"name":feedData["name"],"description":feedData["description"],"fileName":feedData["fileName"],"defaultAssessment":feedData["defaultAssessment"],"defaultSeverity":feedData["defaultSeverity"],"defaultConfidence":feedData["defaultConfidence"],"importFormat":feedData["importFormat"]}
         try:
-            r = requests.put(url, data = json.dumps(bodyRequest), headers = headers, verify=False)
+            r = requests.put(url, data = json.dumps(bodyRequest), headers = headers, verify=self.checkURL)
         except Exception as err:
             self.lastError = err
             return False
@@ -160,10 +163,11 @@ class fidelisThreatBridge:
             return False
 
         url = "{0}/delete/{1}".format(self.threatBridgeURL, deleteID)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.fidelisEndpoint.headers
         try:
-            r = requests.delete(url, headers = headers, verify=False)
+            r = requests.delete(url, headers = headers, verify=self.checkURL)
         except Exception as err:
             self.lastError = err
             return False
@@ -177,9 +181,10 @@ class fidelisThreatBridge:
     def getFeeds(self):
         url = "{0}/feeds".format(self.threatBridgeURL)
         headers = self.fidelisEndpoint.headers
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         try:
-            r = requests.get(url, headers=headers, verify=False)
+            r = requests.get(url, headers=headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
@@ -203,7 +208,8 @@ class fidelisThreatBridge:
 
     def searchFeeds(self, searchTerm, feedNames):
         url = "{0}/search/ungrouped".format(self.threatBridgeURL)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.fidelisEndpoint.headers
         page = 0
         bodyRequest = {"collateResults": True,"ignoredAssessments": [],"ignoredDescriptions": [],"ignoredFeedSources": [],"ignoredSeverities": [],"indicesToExclude": ["accessdata_threatlookup"],"indicesToSearch": [],"orderAscending": True,"orderBy": "alternativeId","searchList": [{"firstResult": page,"indicesToSearch": [],"itemIdentifier": "","searchString": "*","searchType": "AllWildcard","uniqueSearchId": ""}],"trackPerformance": True}
@@ -222,7 +228,7 @@ class fidelisThreatBridge:
         returnedData = []
         while keepGoing:
             try:
-                r = requests.put(url, data = json.dumps(bodyRequest), headers = headers, verify=False)
+                r = requests.put(url, data = json.dumps(bodyRequest), headers = headers, verify=self.checkURL)
                 if type(r.content) == bytes:
                     rData = json.loads(r.content.decode("utf-8"))
                 else:
@@ -256,9 +262,10 @@ class fidelisEndpoint:
 
     def getAuthToken(self, username, password):        
         url = "{0}/authenticate?username={1}&password={2}".format(self.baseURL, quote(username), quote(password))
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         try:
-            r = requests.get(url, verify=False)
+            r = requests.get(url, verify=self.checkURL)
         except Exception as err:
             self.lastError = "Error performing get request to URL- {0}".format(err)
             return None
@@ -280,12 +287,13 @@ class fidelisEndpoint:
             return None
 
     def __findWithSearchCriteria__(self, url, searchCriteria, searchName):
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         if searchCriteria:
             url = "{0}&{1}={2}".format(url, searchName, searchCriteria)
         try:
-            r = requests.get(url, headers = headers, verify=False)
+            r = requests.get(url, headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
@@ -304,10 +312,11 @@ class fidelisEndpoint:
 
     def getHostInfo(self):
         url = "{0}/product-info".format(self.baseURL)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         try:
-            r = requests.get(url, headers = headers, verify=False)
+            r = requests.get(url, headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
@@ -342,10 +351,11 @@ class fidelisEndpoint:
 
     def getEndpointDetails(self, endpointId):
         url = "{0}/endpoints/getEndpointDetailsExpanded/{1}".format(self.baseURL, endpointId)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         try:
-            r = requests.get(url, headers = headers, verify=False)
+            r = requests.get(url, headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
@@ -419,20 +429,13 @@ class fidelisEndpoint:
             self.lastError = err
             return None
 
-    def recursiveGroupAdd(self, groupStructure, returnedData):
-        try:
-            returnedData.append({"name":groupStructure["name"], "id":groupStructure["id"]})
-        except:
-            return
-        for child in groupStructure["children"]:
-            self.recursiveGroupAdd(child, returnedData)
-
     def getGroups(self):
         url = "{0}/groups/GetGroupTree?includeAmAr=true&accessType=2".format(self.baseURL)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         try:
-            r = requests.get(url, headers = headers, verify=False)
+            r = requests.get(url, headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
@@ -512,13 +515,46 @@ class fidelisEndpoint:
                 returnedEndpoints.append(partialEndpoint)            
         return returnedEndpoints
 
+    def getTaskId(self, taskName):
+        allTasksURL = "https://{0}/endpoint/api/packages".format(self.host)
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
+        try:        
+            r = requests.get(allTasksURL, headers=self.headers, verify=self.checkURL)
+            if type(r.content) == bytes:
+                rData = json.loads(r.content.decode("utf-8"))
+            else:
+                rData = json.loads(r.content)
+        except Exception as err:
+            return {"success": False, "error": err}
+
+        taskID = None
+        for task in rData["data"]["scripts"]:
+            if task["name"] == taskName:
+                taskID = task
+                break
+        return taskID
+
+    def getTaskTemplate(self, taskId):
+        url = "https://{0}/endpoint/api/packages/{1}?type=Template".format(self.host, taskId)
+        try:
+            r = requests.get(url, headers=self.headers, verify=self.checkURL)
+            if type(r.content) == bytes:
+                taskTemplate = json.loads(r.content.decode("utf-8"))
+            else:
+                taskTemplate = json.loads(r.content)
+        except Exception as err:
+            return {"success": False, "error": err}
+        return taskTemplate
+
     def executeScript(self, scriptID, endpoints, groups):
         url = "{0}/scriptPackages/scriptPackage/{1}".format(self.baseURL, scriptID)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         playbook = False
         try:
-            r = requests.get(url, headers = headers, verify=False)
+            r = requests.get(url, headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
@@ -530,7 +566,7 @@ class fidelisEndpoint:
             if rData["error"]["statusCode"] == 500 and rData["error"]["message"] == "Sequence contains no elements":
                 url = "{0}/playbooks/PlaybookDetail?id={1}".format(self.baseURL, scriptID)
                 try:
-                    r = requests.get(url, headers = headers, verify=False)
+                    r = requests.get(url, headers = headers, verify=self.checkURL)
                     if type(r.content) == bytes:
                         rData = json.loads(r.content.decode("utf-8"))
                     else:
@@ -563,7 +599,8 @@ class fidelisEndpoint:
                         
         returnedData = ""
         url = "{0}/jobs/createTask".format(self.baseURL)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         bodyRequest = {"packageId": jsonData["id"], "isPlaybook": playbook, "endpoints": endpointsList}
         if playbook:
@@ -573,7 +610,7 @@ class fidelisEndpoint:
         if not playbook:
             bodyRequest["taskOptions"] = [{"detailsLoaded": False, "questions": jsonData["questions"], "queueExpirationInhours": 0, "scriptId": jsonData["id"], "timeoutInSeconds": jsonData["timeoutSeconds"], "details":jsonData}]
         try:
-            r = requests.post(url, data = json.dumps(bodyRequest), headers = headers, verify=False)
+            r = requests.post(url, data = json.dumps(bodyRequest), headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
@@ -592,12 +629,65 @@ class fidelisEndpoint:
                 self.lastError = err
                 return None
 
+    def executeTask(self, taskName, endpoints, timeout, questions):
+
+        #Build a real list of the endpoints for the task
+        taskEndpoints = []
+        try:
+            for endpoint in endpoints:
+                taskEndpoints.append(endpoint["ipAddress"])
+        except Exception as err:
+            return {"success": False, "error": err}
+
+        if (len(taskEndpoints) < 1):
+            myLogging.info("There are no endpoints of the group '{0}' to execute against, skipping".format(fepGroup))
+            return {"success": False, "error": "There are no endpoints to execute against"}
+        
+       
+        #Get the task details
+        try:
+            taskId = self.getTaskId(taskName)["id"]
+        except Exception as err:
+            return {"success": False, "error": err}
+
+        #Get script template for use
+        taskTemplate = self.getTaskTemplate(taskId)
+        
+
+        #Execute the task
+        executeURL = "{0}/packages/{1}/execute".format(self.baseURL, taskTemplate["data"]["scriptPackageId"])
+        newHeaders = self.headers
+        newHeaders["Content-Type"] = "application/json"
+        bodyRequest = {}
+        if timeout is not None and timeout != -1:
+            bodyRequest["timeoutInSeconds"] = int(timeout)
+        else:
+            bodyRequest["timeoutInSeconds"] = taskTemplate["data"]["timeoutInSeconds"]
+        bodyRequest["scriptPackageId"] = taskTemplate["data"]["scriptPackageId"]
+        bodyRequest["hosts"] = taskEndpoints
+        bodyRequest["integrationOutputs"] = taskTemplate["data"]["integrationOutputs"]
+        if questions is None:
+            bodyRequest["questions"] = taskTemplate["data"]["questions"]
+        else:
+            bodyRequest["questions"] = questions
+
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
+        
+        r = requests.post(executeURL, data = json.dumps(bodyRequest), headers = newHeaders, verify=self.checkURL)
+        if type(r.content) == bytes:
+            rData = json.loads(r.content.decode("utf-8"))
+        else:
+            rData = json.loads(r.content)        
+        return rData
+
     def getJobStatus(self, jobID):
         url = "{0}/jobs/getjobResult/{1}".format(self.baseURL, jobID)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         try:
-            r = requests.get(url, headers = headers, verify=False)
+            r = requests.get(url, headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
@@ -616,10 +706,11 @@ class fidelisEndpoint:
 
     def searchEvents(self, searchCriteria, limit):
         url = "{0}/v2/events?pageSize={1}".format(self.baseURL, limit)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         try:
-            r = requests.post(url, headers = headers, data = json.dumps(searchCriteria), verify=False)
+            r = requests.post(url, headers = headers, data = json.dumps(searchCriteria), verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("UTF-8"))
             else:
@@ -652,12 +743,13 @@ class fidelisNetwork:
 
     def __findWithSearchCriteria__(self, url, searchCriteria, limit):
         url = "{0}&amount={1}".format(url, limit)
-        requests.packages.urllib3.disable_warnings()
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
         headers = self.headers
         if searchCriteria and len(searchCriteria) > 0:
             url = "{0}&{1}".format(url, searchCriteria)
         try:
-            r = requests.get(url, headers = headers, verify=False)
+            r = requests.get(url, headers = headers, verify=self.checkURL)
         except Exception as err:
             self.lastError = err
             return None
