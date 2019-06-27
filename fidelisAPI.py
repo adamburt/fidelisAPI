@@ -368,13 +368,13 @@ class fidelisEndpoint:
 
 class fidelisThreatBridge:
 
-    def __init__(self, ip, port, useSSL, ignoressl, apiKey):
-        if useSSL:
+    def __init__(self, host, usessl, ignoressl, apikey):
+        if usessl:
             protocol = "https"
         else:
             protocol = "http"
-        self.apiKey = apiKey
-        self.baseURL = "{0}://{1}:{2}/ThreatBridgeService".format(protocol, ip, port)
+        self.apikey = apikey
+        self.baseURL = "{0}://{1}/ThreatBridgeService".format(protocol, host)
         self.headers = None
         self.ignoressl = ignoressl
         if self.ignoressl:
@@ -385,9 +385,9 @@ class fidelisThreatBridge:
 
     def __genericGetRequest__(self, url):
         if "?" in url:
-            url += "&apiKey={0}".format(self.apiKey)
+            url += "&apiKey={0}".format(self.apikey)
         else:
-            url += "?apiKey={0}".format(self.apiKey)
+            url += "?apiKey={0}".format(self.apikey)
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
@@ -403,9 +403,9 @@ class fidelisThreatBridge:
 
     def __genericDeleteRequest__(self, url, data):
         if "?" in url:
-            url += "&apiKey={0}".format(self.apiKey)
+            url += "&apiKey={0}".format(self.apikey)
         else:
-            url += "?apiKey={0}".format(self.apiKey)
+            url += "?apiKey={0}".format(self.apikey)
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
@@ -424,9 +424,9 @@ class fidelisThreatBridge:
 
     def __genericPostRequest__(self, url, data):
         if "?" in url:
-            url += "&apiKey={0}".format(self.apiKey)
+            url += "&apiKey={0}".format(self.apikey)
         else:
-            url += "?apiKey={0}".format(self.apiKey)
+            url += "?apiKey={0}".format(self.apikey)
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
@@ -442,9 +442,9 @@ class fidelisThreatBridge:
 
     def __genericPutRequest__(self, url, data):
         if "?" in url:
-            url += "&apiKey={0}".format(self.apiKey)
+            url += "&apiKey={0}".format(self.apikey)
         else:
-            url += "?apiKey={0}".format(self.apiKey)
+            url += "?apiKey={0}".format(self.apikey)
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
@@ -809,7 +809,7 @@ class fidelisThreatBridge:
         # files = dictionary of files: {"filename": open("filename", "rb")}
         ##########################################
 
-        url = "{0}/updatelistcontents/{1}?apiKey={2}".format(self.baseURL, listId, self.apiKey)
+        url = "{0}/updatelistcontents/{1}?apiKey={2}".format(self.baseURL, listId, self.apikey)
         try:
             r = requests.put(url, headers = self.headers, files = files, data = None, verify=self.checkURL)
             if type(r.content) == bytes:
@@ -1068,8 +1068,8 @@ class fidelisThreatBridge:
 
 class fidelisNetwork():
 
-    def __init__(self, ip, username, password, useuid, ignoressl):
-        self.baseURL = "https://{0}/query".format(ip)
+    def __init__(self, host, username, password, useuid, ignoressl):
+        self.baseURL = "https://{0}/query".format(host)
         self.username = username
         self.password = password
         self.headers = None
