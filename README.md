@@ -15,7 +15,8 @@ Within the .py file are 3 classes:
 
 As they are named, they are used to access various API calls from each of the technologies. They are instantiated with differing options as outlined in the below *example*:
 
-```
+```python
+
 import fidelisAPI
 
 fep = fidelisAPI.fidelisEndpoint(<host>, <username>, <password>, <authMethod>, <ignoressl>)
@@ -32,7 +33,12 @@ For a description of each of the inputs for the instatiation, please see the rel
 
 ## Fidelis Endpoint
 
-Instatiation: `fep = fidelisAPI.fidelisEndpoint(<host>, <username>, <password>, <authMethod>, <ignoressl>)`
+Instatiation:
+```python
+
+fep = fidelisAPI.fidelisEndpoint(<host>, <username>, <password>, <authMethod>, <ignoressl>)
+
+```
 
 When instantiated, there are 5 inputs that are required:
 
@@ -44,7 +50,13 @@ When instantiated, there are 5 inputs that are required:
   
 ## Fidelis Network
 
-Instatiation: `fnw = fidelisAPI.fidelisNetwork(<host>, <username>, <password>, <useuid>, <ignoressl>)`
+Instatiation:
+
+```python
+
+fnw = fidelisAPI.fidelisNetwork(<host>, <username>, <password>, <useuid>, <ignoressl>)
+
+```
 
 When instantiated, there are 5 inputs that are required:
 
@@ -56,7 +68,13 @@ When instantiated, there are 5 inputs that are required:
   
 ## Fidelis ThreatBridge
 
-Instatiation: `tb = fidelisAPI.fidelisThreatBridge(<host>, <usessl>, <ignoressl>, <apikey>)`
+Instatiation:
+
+```python
+
+tb = fidelisAPI.fidelisThreatBridge(<host>, <usessl>, <ignoressl>, <apikey>)`
+
+```
 
 When instantiated, there are 4 inputs that are required:
 
