@@ -1,274 +1,52 @@
 import requests
 import json
 from datetime import datetime
-import os
 from urllib.parse import unquote
 from urllib.parse import quote
-from pprint import pprint
-
-class fidelisThreatBridge:
-    def __init__(self, fidelisEndpoint):
-        self.fidelisEndpoint = fidelisEndpoint
-        self.lastError = ""
-        self.lastSuccess = ""
-        self.checkURL = False
-        self.ignoressl = True
-        now = datetime.now()
-        self.threatBridgeURL = "{0}/threatbridge".format(self.fidelisEndpoint.baseURL)
-
-    def createTBDataObject(self, data):
-        if type(data) is not str and type(data) is not dict:
-            self.lastError = "Unknown input provided in input"
-            return {}
-        feedData = {}
-        if type(data) is dict:
-            try:
-                if not data["defaultAssessment"]:
-                    self.lastError = "defaultAssessment is missing"
-                    return {}
-                if not data["defaultConfidence"]:
-                    self.lastError = "defaultConfidence is missing"
-                    return {}
-                if not data["defaultSeverity"]:
-                    self.lastError = "defaultSeverity is missing"
-                    return {}
-                if not data["description"]:
-                    self.lastError = "description is missing"
-                    return {}
-                if not data["useWithProcessBlocking"]:
-                    self.lastError = "useWithProcessBlocking is missing"
-                    return {}
-                if not data["fileName"]:
-                    self.lastError = "fileName is missing"
-                    return {}
-                if not data["source"]:
-                    self.lastError = "source is missing"
-                    return {}
-                if not data["fieldMappings"]:
-                    self.lastError = "fieldMappings is missing"
-                    return {}
-                if not data["hasCsvHeaderRow"]:
-                    self.lastError = "hasCsvHeaderRow is missing"
-                    return {}
-                if not data["importFormat"]:
-                    self.lastError = "importFormat is missing"
-                    return {}
-                if not data["name"]:
-                    self.lastError = "name is missing"
-                    return {}
-                if not data["updatingMethod"]:
-                    self.lastError = "updateMethod is missing"
-                    return {}
-            except Exception as err:
-                self.lastError = "Not enough parameters provided - {0}".format(err)
-                return {}
-            try:
-                feedData["defaultAssessment"] = data["defaultAssessment"]
-                feedData["defaultConfidence"] = data["defaultConfidence"]
-                feedData["defaultSeverity"] = data["defaultSeverity"]
-                feedData["description"] = data["description"]
-                feedData["useWithProcessBlocking"] = data["useWithProcessBlocking"]
-                feedData["fileName"] = data["fileName"]
-                feedData["source"] = data["source"]
-                feedData["fieldMappings"] = data["fieldMappings"]
-                feedData["hasCsvHeaderRow"] = data["hasCsvHeaderRow"]
-                feedData["importFormat"] = data["importFormat"]
-                feedData["name"] = data["name"]
-                feedData["updatingMethod"] = data["updatingMethod"]
-            except Exception as err:
-                self.lastError = "Not enough parameters in dictionary - {0}".format(err)
-                return {}
-
-        if type(data) is str:
-            try:
-                with open(data, "r") as jsonFile:
-                    jsonData = json.load(jsonFile)
-                    feedData["defaultAssessment"] = jsonData["defaultAssessment"]
-                    feedData["defaultConfidence"] = jsonData["defaultConfidence"]
-                    feedData["defaultSeverity"] = jsonData["defaultSeverity"]
-                    feedData["description"] = jsonData["description"]
-                    feedData["useWithProcessBlocking"] = jsonData["useWithProcessBlocking"]
-                    feedData["fileName"] = jsonData["fileName"]
-                    feedData["source"] = jsonData["source"]
-                    feedData["fieldMappings"] = jsonData["fieldMappings"]
-                    feedData["hasCsvHeaderRow"] = jsonData["hasCsvHeaderRow"]
-                    feedData["importFormat"] = jsonData["importFormat"]
-                    feedData["name"] = jsonData["name"]
-                    feedData["updatingMethod"] = jsonData["updatingMethod"]
-            except Exception as err:
-                self.lastError = "Not enough parameters in dictionary - {0}".format(err)
-                return {}
-        return feedData
-
-    def printData(self, feedData):
-        print("Name: {0}".format(feedData["name"]))
-        print("Description: {0}".format(feedData["description"]))
-        print("Use with Process Blocking: {0}".format(feedData["description"]))
-        print("File: {0}".format(feedData["fileName"]))
-        print("Import Format: {0}".format(feedData["importFormat"]))
-        print("Hash CSV header?: {0}".format(feedData["hasCsvHeaderRow"]))
-        print("Default Assessment: {0}".format(feedData["defaultAssessment"]))
-        print("Default Confidence: {0}".format(feedData["defaultConfidence"]))
-        print("Default Severity: {0}".format(feedData["defaultSeverity"]))
-        print("Source: {0}".format(feedData["source"]))
-        print("Field Mappings: {0}".format(feedData["fieldMappings"]))
-        print("Update method: {0}".format(feedData["updatingMethod"]))
-
-    def addFeed(self, feedData):
-        if not feedData["defaultAssessment"]:
-            self.lastError = "No default assessment defined"
-            return False
-        if not feedData["defaultConfidence"]:
-            self.lastError = "No default confidence defined"
-            return False
-        if not feedData["defaultSeverity"]:
-            self.lastError = "No default severity defined"
-            return False
-        if not feedData["fileName"]:
-            self.lastError = "No file name defined"
-            return False
-        if feedData["importFormat"] == "CSV" and len(feedData["fieldMappings"]) < 1:
-            self.lastError = "No field mappings defined"
-            return False
-        if not feedData["importFormat"]:
-            self.lastError = "No import format defined"
-            return False
-        if not feedData["name"]:
-            self.lastError = "No name defined"
-            return False
-        if len(feedData["updatingMethod"]) < 1:
-            self.lastError = "No updating method defined"
-            return False
-        url = "{0}/addFeed".format(self.threatBridgeURL)
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        headers = self.fidelisEndpoint.headers
-        bodyRequest = {"useWithProcessBlocking": feedData["useWithProcessBlocking"], "updatingMethod":feedData["updatingMethod"],"feedParserSettings":{},"hasCsvHeaderRow":feedData["hasCsvHeaderRow"],"fieldMappings":feedData["fieldMappings"],"name":feedData["name"],"description":feedData["description"],"fileName":feedData["fileName"],"defaultAssessment":feedData["defaultAssessment"],"defaultSeverity":feedData["defaultSeverity"],"defaultConfidence":feedData["defaultConfidence"],"importFormat":feedData["importFormat"]}
-        try:
-            r = requests.put(url, data = json.dumps(bodyRequest), headers = headers, verify=self.checkURL)
-        except Exception as err:
-            self.lastError = err
-            return False
-        self.lastSuccess = "Added feed \"{0}\"".format(feedData["name"])
-        return True
-
-    def deleteFeed(self, feedName):
-        feedNames = self.getFeeds()
-        deleteID = ""
-        for item in feedNames:
-            if item["name"] == feedName:
-                deleteID = item["id"]
-        if len(deleteID) < 1:
-            self.lastError = "The feed name \"{0}\" does not exist".format(feedName)
-            return False
-
-        url = "{0}/delete/{1}".format(self.threatBridgeURL, deleteID)
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        headers = self.fidelisEndpoint.headers
-        try:
-            r = requests.delete(url, headers = headers, verify=self.checkURL)
-        except Exception as err:
-            self.lastError = err
-            return False
-        if r.status_code == 200:
-            self.lastSuccess = "Successfully deleted feed \"{0}\"".format(feedName)
-            return True
-        else:
-            self.lastError = r.content
-            return True
-
-    def getFeeds(self):
-        url = "{0}/feeds".format(self.threatBridgeURL)
-        headers = self.fidelisEndpoint.headers
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        try:
-            r = requests.get(url, headers=headers, verify=self.checkURL)
-            if type(r.content) == bytes:
-                rData = json.loads(r.content.decode("utf-8"))
-            else:
-                rData = json.loads(r.content)
-        except Exception as err:
-            self.lastError = err
-            return False
-        returnedValues = []
-        
-        if not rData or rData == None or type(rData) != dict:
-            return returnedValues
-        try:
-            if not rData["data"] and not rData["data"]["data"]:
-                return returnedValues
-        except:
-            return returnedValues
-
-        for feed in rData["data"]["data"]:
-            returnedValues.append(feed)
-        return returnedValues
-
-    def searchFeeds(self, searchTerm, feedNames):
-        url = "{0}/search/ungrouped".format(self.threatBridgeURL)
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        headers = self.fidelisEndpoint.headers
-        page = 0
-        bodyRequest = {"collateResults": True,"ignoredAssessments": [],"ignoredDescriptions": [],"ignoredFeedSources": [],"ignoredSeverities": [],"indicesToExclude": ["accessdata_threatlookup"],"indicesToSearch": [],"orderAscending": True,"orderBy": "alternativeId","searchList": [{"firstResult": page,"indicesToSearch": [],"itemIdentifier": "","searchString": "*","searchType": "AllWildcard","uniqueSearchId": ""}],"trackPerformance": True}
-        if feedNames and type(feedNames) is not list:
-            self.lastError = "Please provide a list as the feedNames parameter. We got a {0}".format(type(feedNames))
-            return []
-        if searchTerm:
-            bodyRequest["searchList"][0]["searchString"] = "*{0}*".format(searchTerm)
-        if feedNames and type(feedNames) == list and len(feedNames) > 0:
-            allFeeds = self.getFeeds()
-            for item in feedNames:
-                for feed in allFeeds:
-                    if feed["name"] == item:
-                        bodyRequest["indicesToSearch"].append(feed["id"])
-        keepGoing = 1
-        returnedData = []
-        while keepGoing:
-            try:
-                r = requests.put(url, data = json.dumps(bodyRequest), headers = headers, verify=self.checkURL)
-                if type(r.content) == bytes:
-                    rData = json.loads(r.content.decode("utf-8"))
-                else:
-                    rData = json.loads(r.content)
-                keepGoing = rData["data"]["count"]
-            except Exception as err:
-                self.lastError = err
-                return []
-            if not rData["success"] == True:
-                self.lastError = rData["error"]
-                return []
-            for intel in rData["data"]["data"]:
-                returnedData.append(intel["threatDocument"])
-            page = page + keepGoing
-            bodyRequest["searchList"][0]["firstResult"] = page
-        return returnedData
+import io
 
 class fidelisEndpoint:
 
-    def __init__(self, host, username, password):
+    def __init__(self, host, username, password, authMethod, ignoressl):
         self.host = host
         self.baseURL = "https://{0}/endpoint/api".format(host)
         self.username = username
         self.password = password
-        self.lastError = ""
-        self.lastSuccess = ""
-        self.checkURL = False
-        self.ignoressl = True
-        self.authToken = self.getAuthToken(self.username, self.password)
-        self.headers = {"Content-Type": "application/json;charset=UTF-8", "Authorization": "bearer {0}".format(self.authToken)}
+        self.ignoressl = ignoressl
+        if self.ignoressl:
+            self.checkURL = False
+        else:
+            self.checkURL = True
+        self.lastError = None
+        self.authToken = self.getAuthToken(self.username, self.password, authMethod)
+        self.headers = {"Content-Type": "application/json;charset=UTF-8", "Authorization": "bearer {0}".format(self.authToken)}     
 
-    def getAuthToken(self, username, password):        
-        url = "{0}/authenticate?username={1}&password={2}".format(self.baseURL, quote(username), quote(password))
+    def getAuthToken(self, username, password, method):
+        
+        #Find out whether get is used rather than post
+        useGet = False
+        url = "{0}/authenticate".format(self.baseURL)
+        if method.lower() == "get":
+            url += "?username={0}&password={1}".format(quote(username), quote(password))
+            useGet = True
+        
+        #Ignore SSL errors if specified
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
-        try:
-            r = requests.get(url, verify=self.checkURL)
-        except Exception as err:
-            self.lastError = "Error performing get request to URL- {0}".format(err)
-            return None
+        if useGet:
+            try:
+                r = requests.get(url, verify=self.checkURL)
+            except Exception as err:
+                self.lastError = "Error performing get request to URL- {0}".format(err)
+                return None
+        if not useGet:
+            try:
+                headers = {"Content-Type": "application/json"}
+                bodyRequest = {"username": username, "password": password}
+                r = requests.post(url, data = json.dumps(bodyRequest), headers = headers, verify=self.checkURL)
+            except Exception as err:
+                self.lastError = "Error performing get request to URL- {0}".format(err)
+                return None
         try:
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
@@ -277,7 +55,7 @@ class fidelisEndpoint:
         except Exception as err:
             self.lastError = "Error parsing JSON data returned from authentication URL - {0}".format(err)
             return None
-        if (rData["success"] == False):
+        if not rData["success"]:
             self.lastError = "Error returned from authentication request - {0}".format(rData["error"]["message"])
             return None
         try:
@@ -286,403 +64,330 @@ class fidelisEndpoint:
             self.lastError = err
             return None
 
-    def __findWithSearchCriteria__(self, url, searchCriteria, searchName):
+    def __genericGetRequest__(self, url):
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
-        if searchCriteria:
-            url = "{0}&{1}={2}".format(url, searchName, searchCriteria)
         try:
             r = requests.get(url, headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
                 rData = json.loads(r.content)
-        except Exception as err:
-            self.lastError = err
-            return None
-        try:
-            if rData["success"] == False:
-                self.lastError = rData["error"]
-                return None
             return rData
         except Exception as err:
-            self.lastError = err
-            return None
+            return {"success": False, "error": err}
 
-    def getHostInfo(self):
-        url = "{0}/product-info".format(self.baseURL)
+    def __genericPostRequest__(self, url, data):
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
         try:
-            r = requests.get(url, headers = headers, verify=self.checkURL)
+            r = requests.post(url, headers = headers, data = json.dumps(data), verify=self.checkURL)
             if type(r.content) == bytes:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
                 rData = json.loads(r.content)
+            return rData
         except Exception as err:
-            self.lastError = err
-            return None
-        if rData["success"] == False:
-            self.lastError = rData["error"]
-            return None
-        try:
-            return rData["data"]
-        except Exception as err:
-            self.lastError = err
-            return None
+            return {"success": False, "error": err}
 
-    def searchScripts(self, searchCriteria, limit):
-        url = "{0}/playbooks/PlaybooksAndScripts?filterType=0&isManagementRequest=false&platformFilter=0&skip=0&sort=&take={1}".format(self.baseURL, limit)
-        data = self.__findWithSearchCriteria__(url, searchCriteria, "search")
+    def __genericDeleteRequest__(self, url, data):
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
+        headers = self.headers
         try:
-            return data["data"]["entities"]
+            if data:
+                r = requests.delete(url, headers = headers, data = json.dumps(data), verify=self.checkURL)
+            else:
+                r = requests.delete(url, headers = headers, verify=self.checkURL)
+            if type(r.content) == bytes:
+                rData = json.loads(r.content.decode("utf-8"))
+            else:
+                rData = json.loads(r.content)
+            return rData
         except Exception as err:
-            self.lastError = err
-            return None
+            return {"success": False, "error": err}
 
-    def getAllEndpoints(self, limit):
-        if limit is None:
-            limit = 1000000
-        url = "{0}/endpoints/0/{1}/hostname".format(self.baseURL, limit)
-        data = self.__findWithSearchCriteria__(url, None, None)
+    def getAlertRules(self, limit, offset, sort, search):
+        url = "{0}/alertrules".format(self.baseURL)
+
+        if limit:
+            if "?" not in url:
+                url += "?limit={0}".format(limit)
+            else:
+                url += "&limit={0}".format(limit)
+        if offset:
+            if "?" not in url:
+                url += "?offset={0}".format(offset)
+            else:
+                url += "&offset={0}".format(offset)
+        if sort:
+            if "?" not in url:
+                url += "?sort={0}".format(sort)
+            else:
+                url += "&sort={0}".format(sort)
+        if search:
+            if "?" not in url:
+                url += "?search={0}".format(json.dumps(search))
+            else:
+                url += "&search={0}".format(json.dumps(search))
+
+        data = self.__genericGetRequest__(url, None, None)
         return data
 
-    def getEndpointDetails(self, endpointId):
-        url = "{0}/endpoints/getEndpointDetailsExpanded/{1}".format(self.baseURL, endpointId)
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        headers = self.headers
-        try:
-            r = requests.get(url, headers = headers, verify=self.checkURL)
-            if type(r.content) == bytes:
-                rData = json.loads(r.content.decode("utf-8"))
-            else:
-                rData = json.loads(r.content)
-        except Exception as err:
-            self.lastError = err
-            return None
-        try:
-            if rData["success"] == False:
-                self.lastError = rData["error"]
-                return None
-            return rData["data"]
-        except Exception as err:
-            self.lastError = err
-            return None
-        try:
-            return data
-        except Exception as err:
-            self.lastError = err
-            return None
-
-    def getEndpointFromHostname(self, hostname):
-        endpoints = self.getAllEndpoints(1000000)
-        thisEndpoint = None
-        for endpoint in endpoints:
-            if endpoint["hostName"].lower() == hostname.lower():
-                thisEndpoint = endpoint
-                break
-        return thisEndpoint
-
-    def searchEndpointSoftware(self, endpointID, searchCriteria, limit):
-        url = "{0}/installedSoftware/{1}?skip=0&sort=installDate+Descending&take={2}".format(self.baseURL, endpointID, limit)
-        data = self.__findWithSearchCriteria__(url, searchCriteria, "facetSearch")
-        try:
-            return data["data"]["entities"]
-        except Exception as err:
-            self.lastError = err
-            return None
-
-    def searchAlerts(self, searchCriteria, limit, startDate, endDate, sort):
-        if sort is None:
-            sort = "insertionDate+Descending"
-        datenow = datetime.now()
-        if endDate is None:
-            endDate = datenow.strftime("%y-%m-%dT%H:%M:%S.000Z")
-        if startDate is None:
-            startDate = "1970-01-01T00:00:00.000Z"
-        url = "{0}/alerts/getalerts?endDate={1}&startDate={2}&filterType=0&skip=0&sort={3}&take={4}".format(self.baseURL, endDate, startDate, sort, limit)
-        data = self.__findWithSearchCriteria__(url, searchCriteria, "facetSearch")
-        try:
-            return data["data"]["entities"]
-        except Exception as err:
-            self.lastError = err
-            return None
-
-    def searchExecutables(self, searchCriteria, limit):
-        url = "{0}/executables?skip=0&sort=reportingDate+Descending&take={1}".format(self.baseURL, limit)
-        data = self.__findWithSearchCriteria__(url, searchCriteria, "facetSearch")
-        try:
-            return data["data"]["entities"]
-        except Exception as err:
-            self.lastError = err
-            return None
-
-    def searchSoftware(self, searchCriteria, limit):
-        url = "{0}/installedSoftware?skip=0&sort=name+Ascending&take={1}".format(self.baseURL, limit)
-        data = self.__findWithSearchCriteria__(url, searchCriteria, "facetSearch")
-        try:
-            return data["data"]["entities"]
-        except Exception as err:
-            self.lastError = err
-            return None
-
-    def getGroups(self):
-        url = "{0}/groups/GetGroupTree?includeAmAr=true&accessType=2".format(self.baseURL)
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        headers = self.headers
-        try:
-            r = requests.get(url, headers = headers, verify=self.checkURL)
-            if type(r.content) == bytes:
-                rData = json.loads(r.content.decode("utf-8"))
-            else:
-                rData = json.loads(r.content)
-        except Exception as err:
-            self.lastError = err
-            return None
-        if rData["success"] == False:
-            self.lastError = rData["error"]
-            return None
-        try:
-            return rData["data"]
-        except Exception as err:
-            self.lastError = err
-            return None
-
-    def getGroupName(self, groupID):
-        allGroups = self.getGroups()
-        allData = []
-        self.recursiveGroupAdd(allGroups, allData)
-        returnedItems = ""
-        for item in allData:
-            if item["id"].lower() == groupID.lower():
-                returnedItems  = item["name"]
-        try:
-            return returnedItems
-        except Exception as err:
-            self.lastError = err
-            return None
-
-    def getGroupID(self, groupName, contains):
-        allGroups = self.getGroups()
-        allData = []
-        self.recursiveGroupAdd(allGroups, allData)
-        returnedItems = None
-        for item in allData:
-            if contains:
-                if returnedItems is None:
-                    returnedItems = []
-                if item["name"].lower().find(groupName.lower()) != -1:
-                    returnedItems.append(item["id"])
-            if not contains:
-                if returnedItems is None:
-                    returnedItems = []
-                if item["name"] == groupName:
-                    returnedItems.append(item["id"])
-        try:
-            return returnedItems
-        except Exception as err:
-            self.lastError = err
-            return None
-
-    def getGroupEndpoints(self, groupName):
-        allEndpoints = self.getAllEndpoints(None)
-        if allEndpoints is None:
-            return None
-        if allEndpoints["success"]:
-            allEndpoints = allEndpoints["data"]["endpoints"]
-        else:
-            return None
-        returnedEndpoints = []
-        partialList = []
-        for endpoint in allEndpoints:
-            try:
-                groupList = endpoint["groupList"].split("\n")
-                if groupName in groupList:
-                    partialList.append(endpoint)
-            except:
-                pass
-        for partialEndpoint in partialList:
-            thisExists = False
-            for returnedEndpoint in returnedEndpoints:
-                if returnedEndpoint["hostName"] == partialEndpoint["hostName"]:
-                    thisExists = True
-                    break
-            if not thisExists:
-                returnedEndpoints.append(partialEndpoint)            
-        return returnedEndpoints
-
-    def getTaskId(self, taskName):
-        allTasksURL = "https://{0}/endpoint/api/packages".format(self.host)
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        try:        
-            r = requests.get(allTasksURL, headers=self.headers, verify=self.checkURL)
-            if type(r.content) == bytes:
-                rData = json.loads(r.content.decode("utf-8"))
-            else:
-                rData = json.loads(r.content)
-        except Exception as err:
-            return {"success": False, "error": err}
-
-        taskID = None
-        for task in rData["data"]["scripts"]:
-            if task["name"] == taskName:
-                taskID = task
-                break
-        return taskID
-
-    def getTaskTemplate(self, taskId):
-        url = "https://{0}/endpoint/api/packages/{1}?type=Template".format(self.host, taskId)
-        try:
-            r = requests.get(url, headers=self.headers, verify=self.checkURL)
-            if type(r.content) == bytes:
-                taskTemplate = json.loads(r.content.decode("utf-8"))
-            else:
-                taskTemplate = json.loads(r.content)
-        except Exception as err:
-            return {"success": False, "error": err}
-        return taskTemplate
-
-    def executeScript(self, scriptID, endpoints, groups):
-        url = "{0}/scriptPackages/scriptPackage/{1}".format(self.baseURL, scriptID)
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        headers = self.headers
-        playbook = False
-        try:
-            r = requests.get(url, headers = headers, verify=self.checkURL)
-            if type(r.content) == bytes:
-                rData = json.loads(r.content.decode("utf-8"))
-            else:
-                rData = json.loads(r.content)
-        except Exception as err:
-            self.lastError = err
-            return None
-        if rData["success"] == False:
-            if rData["error"]["statusCode"] == 500 and rData["error"]["message"] == "Sequence contains no elements":
-                url = "{0}/playbooks/PlaybookDetail?id={1}".format(self.baseURL, scriptID)
-                try:
-                    r = requests.get(url, headers = headers, verify=self.checkURL)
-                    if type(r.content) == bytes:
-                        rData = json.loads(r.content.decode("utf-8"))
-                    else:
-                        rData = json.loads(r.content)
-                    
-                    if rData["success"] == True:
-                        playbook = True
-                except Exception as err:
-                    self.lastError = err
-                    return None
-        jsonData = rData["data"]
-        endpointsList = []
-        for group in groups:
-            theseGroupIDs = self.getGroupID(group, False)
-            for groupID in theseGroupIDs:
-                allGroupEndpoints = self.getGroupEndpoints(groupID)
-                for endpoint in allGroupEndpoints:
-                    endpointsList.append(endpoint["id"])
-        allEndpoints = self.searchEndpoints(None)
-        allIDs = []
-        for endpoint in allEndpoints:
-            for endpointName in endpoints:
-                if endpoint["hostName"] == endpointName:
-                    if endpoint["id"] not in allIDs:
-                        allIDs.append(endpoint["id"])
-        
-        for thisID in allIDs:
-            if thisID not in endpointsList:
-                endpointsList.append(thisID)
-                        
-        returnedData = ""
-        url = "{0}/jobs/createTask".format(self.baseURL)
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        headers = self.headers
-        bodyRequest = {"packageId": jsonData["id"], "isPlaybook": playbook, "endpoints": endpointsList}
-        if playbook:
-            bodyRequest["taskOptions"] = jsonData["scripts"]
-            for item in bodyRequest["taskOptions"]:
-                del item["integrationOutputFormat"]
-        if not playbook:
-            bodyRequest["taskOptions"] = [{"detailsLoaded": False, "questions": jsonData["questions"], "queueExpirationInhours": 0, "scriptId": jsonData["id"], "timeoutInSeconds": jsonData["timeoutSeconds"], "details":jsonData}]
-        try:
-            r = requests.post(url, data = json.dumps(bodyRequest), headers = headers, verify=self.checkURL)
-            if type(r.content) == bytes:
-                rData = json.loads(r.content.decode("utf-8"))
-            else:
-                rData = json.loads(r.content)
-        except Exception as err:
-            self.lastError = err
-            return None
-        if rData["success"] == False:
-            self.lastError = rData["error"]
-            return None
-        if rData["success"] == True:
-            self.lastSuccess = "Script executed with ID {0}".format(rData["data"])
-            try:
-                return rData["data"]
-            except Exception as err:
-                self.lastError = err
-                return None
-
-    def executeTask(self, taskName, endpoints, timeout, questions):
-
-        #Build a real list of the endpoints for the task
-        taskEndpoints = []
-        try:
-            for endpoint in endpoints:
-                taskEndpoints.append(endpoint["ipAddress"])
-        except Exception as err:
-            return {"success": False, "error": err}
-
-        if (len(taskEndpoints) < 1):
-            myLogging.info("There are no endpoints of the group '{0}' to execute against, skipping".format(fepGroup))
-            return {"success": False, "error": "There are no endpoints to execute against"}
-        
-       
-        #Get the task details
-        try:
-            taskId = self.getTaskId(taskName)["id"]
-        except Exception as err:
-            return {"success": False, "error": err}
-
-        #Get script template for use
-        taskTemplate = self.getTaskTemplate(taskId)
-        
-
-        #Execute the task
-        executeURL = "{0}/packages/{1}/execute".format(self.baseURL, taskTemplate["data"]["scriptPackageId"])
-        newHeaders = self.headers
-        newHeaders["Content-Type"] = "application/json"
-        bodyRequest = {}
-        if timeout is not None and timeout != -1:
-            bodyRequest["timeoutInSeconds"] = int(timeout)
-        else:
-            bodyRequest["timeoutInSeconds"] = taskTemplate["data"]["timeoutInSeconds"]
-        bodyRequest["scriptPackageId"] = taskTemplate["data"]["scriptPackageId"]
-        bodyRequest["hosts"] = taskEndpoints
-        bodyRequest["integrationOutputs"] = taskTemplate["data"]["integrationOutputs"]
-        if questions is None:
-            bodyRequest["questions"] = taskTemplate["data"]["questions"]
-        else:
-            bodyRequest["questions"] = questions
-
-        if self.ignoressl:
-            requests.packages.urllib3.disable_warnings()
-        
-        r = requests.post(executeURL, data = json.dumps(bodyRequest), headers = newHeaders, verify=self.checkURL)
-        if type(r.content) == bytes:
-            rData = json.loads(r.content.decode("utf-8"))
-        else:
-            rData = json.loads(r.content)        
+    def createAlertRule(self, data):
+        url = "{0}/alertrules".format(self.baseURL)
+        rData = self.__genericPostRequest__(url, data)
         return rData
 
-    def getJobStatus(self, jobID):
-        url = "{0}/jobs/getjobResult/{1}".format(self.baseURL, jobID)
+    def deleteAlertRules(self, data):
+        url = "{0}/alertrules/delete".format(self.baseURL)
+        rData = self.__genericPostRequest__(url, data)
+        return rData
+
+    def getAlerts(self, skip, take, sort, facetSearch, startDate, endDate):
+        
+        url = "{0}/alerts/getalerts".format(self.baseURL)
+        if skip:
+            if "?" not in url:
+                url += "?skip={0}".format(skip)
+            else:
+                url += "&skip={0}".format(skip)
+        if take:
+            if "?" not in url:
+                url += "?take={0}".format(take)
+            else:
+                url += "&take={0}".format(take)
+        if sort:
+            if "?" not in url:
+                url += "?sort={0}".format(sort)
+            else:
+                url += "&sort={0}".format(sort)
+        if facetSearch:
+            if "?" not in url:
+                url += "?facetSearch={0}".format(quote(facetSearch))
+            else:
+                url += "&facetSearch={0}".format(quote(facetSearch))
+        if startDate:
+            if "?" not in url:
+                url += "?startDate={0}".format(quote(startDate.strftime("%Y-%m-%dT%H:%M:%S.000Z")))
+            else:
+                url += "&startDate={0}".format(quote(startDate.strftime("%Y-%m-%dT%H:%M:%S.000Z")))
+        if endDate:
+            if "?" not in url:
+                url += "?endDate={0}".format(quote(endDate.strftime("%Y-%m-%dT%H:%M:%S.000Z")))
+            else:
+                url += "&endDate={0}".format(quote(endDate.strftime("%Y-%m-%dT%H:%M:%S.000Z")))
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def getEndpoints(self, startIndex, count, sort):
+        url = "{0}/endpoints".format(self.baseURL)
+        if startIndex:
+            url += "/{0}".format(startIndex)
+        else:
+            url += "/0"
+        if count:
+            url += "/{0}".format(count)
+        else:
+            url += "/10"
+        if sort:
+            url += "/{0}".format(sort)
+        else:
+            url += "/hostName"
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def getEndpointIdsbyEndpointNames(self, names):
+        url = "{0}/endpoints/endpointidsbyname".format(self.baseURL)
+        rData = self.__genericPostRequest__(url, names)
+        return rData
+
+    def deleteEndpoint(self, inputId):
+        url = "{0}/endpoints/delete/{1}".format(self.baseURL, inputId)
+        rData = self.__genericDeleteRequest__(url, None)
+        return rData
+
+    def getEvents(self, searchCriteria, pageSize):
+        url = "{0}/v2/events".format(self.baseURL)
+        if pageSize:
+            url += "?pageSize={0}".format(pageSize)
+        rData = self.__genericPostRequest__(url, searchCriteria)
+        return rData
+
+    def getEventCount(self, searchCriteria):
+        url = "{0}/events/count".format(self.baseURL)
+        rData = self.__genericPostRequest__(url, searchCriteria)
+        return rData
+
+    def fileSearch(self, searchCriteria):
+        url = "{0}/files/search".format(self.baseURL)
+        rData = self.__genericPostRequest__(url, searchCriteria)
+        return rData
+
+    def fileSearchJobStatus(self, jobId, jobResultId):
+        url = "{0}/jobs/getjobstatus/{1}/{2}".format(self.baseURL, jobId, jobResultId)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def fileSearchJobResults(self, jobId, jobResultId):
+        url = "{0}/jobs/{1}/jobresults/{2}".format(self.baseURL, jobId, jobResultId)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def fileSearchGetStream(self, fileId):
+        url = "{0}/files/{1}".format(self.baseURL, fileId)
+        
+        #Copy our headers and remove the Content-Type
+        headers = {}
+        for k in self.headers:
+            headers[k] = self.headers[k]
+        del headers["Content-Type"]
+        
+        #Create a byte stream to copy the data into
+        data = io.BytesIO()
+        try:
+            with requests.get(url, headers = headers, verify=self.checkURL, stream=True) as r:
+                r.raise_for_status()
+                for chunk in r.iter_content(chunk_size=1024):
+                    data.write(chunk)
+        except Exception as err:
+            return None
+        return data.getvalue()
+
+    def deleteJob(self, jobId):
+        url = "{0}/jobs/{1}".format(self.baseURL, jobId)
+        rData = self.__genericDeleteRequest__(url, None)
+        return rData
+
+    def getEndpointByIP(self, ip):
+        url = "{0}/endpoints/search".format(self.baseURL)
+        searchCriteria = {"ip": ip}
+        rData = self.__genericPostRequest__(url, searchCriteria)
+        return rData
+
+    def getProductInfo(self):
+        url = "{0}/product-info".format(self.baseURL)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def getScriptPackages(self):
+        url = "{0}/packages".format(self.baseURL)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def getScriptPackageFile(self, scriptPackageId):
+        url = "{0}/packages/{1}?type=File".format(self.baseURL, scriptPackageId)
+        
+        #Copy our headers and remove the Content-Type
+        headers = {}
+        for k in self.headers:
+            headers[k] = self.headers[k]
+        del headers["Content-Type"]
+        
+        #Create a byte stream to copy the data into
+        data = io.BytesIO()
+        try:
+            with requests.get(url, headers = headers, verify=self.checkURL, stream=True) as r:
+                r.raise_for_status()
+                for chunk in r.iter_content(chunk_size=1024):
+                    data.write(chunk)
+        except Exception as err:
+            return None
+        return data.getvalue()
+
+    def getScriptPackageManifest(self, scriptPackageId):
+        url = "{0}/packages/{1}?type=Manifest".format(self.baseURL, scriptPackageId)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def getScriptPackageMetadata(self, scriptPackageId):
+        url = "{0}/packages/{1}?type=Metadata".format(self.baseURL, scriptPackageId)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def getScriptPackageTemplate(self, scriptPackageId):
+        url = "{0}/packages/{1}?type=Template".format(self.baseURL, scriptPackageId)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def executeScriptPackage(self, scriptCriteria):
+        url = "{0}/packages/{1}/execute".format(self.baseURL, scriptCriteria["scriptPackageId"])
+        rData = self.__genericPostRequest__(url, scriptCriteria)
+        return rData
+
+    def getScriptJobResults(self, jobResultId):
+        url = "{0}/jobresults/scriptjob_{1}".format(self.baseURL, jobResultId)
+        rData = self.__genericPostRequest__(url, None)
+        return rData
+
+    def getScriptJobTargets(self, jobResultId):
+        url = "{0}/jobs/getjobtargets/{1}".format(self.baseURL, jobResultId)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def createScriptPackage(self, scriptOptions):
+        url = "{0}/scriptPackages/createUpdate".format(self.baseURL)
+        rData = self.__genericPostRequest__(url, scriptOptions)
+        return rData
+
+    def uploadScriptPackageFiles(self, scriptPackageId, fileData):
+
+        ##########################################################################################
+        # fileData must be a JSON dictionary containing the files to upload with their names
+        # For example: fileData = {"test.txt": open("C:\\test.txt", "rb")}
+        ##########################################################################################
+
+        url = "{0}/scriptPackages/scriptPackageFileUpload/{1}".format(self.baseURL, scriptPackageId)
+        #Copy our headers and change the Content-Type
+        headers = {}
+        for k in self.headers:
+            headers[k] = self.headers[k]
+        del headers["Content-Type"]# = "multipart/form-data"
+
+        #Ignore SSL errors?
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
+
+        #Make the request
+        try:
+            r = requests.post(url, headers = headers, files = fileData, data = None, verify=self.checkURL)
+            if type(r.content) == bytes:
+                rData = json.loads(r.content.decode("utf-8"))
+            else:
+                rData = json.loads(r.content)
+            return rData
+        except Exception as err:
+            return {"success": False, "error": err}
+
+    def finalizeScriptPackage(self, scriptPackageId):
+        url = "{0}/scriptPackages/PackageChangeComplete/{1}/false".format(self.baseURL, scriptPackageId)
+        rData = self.__genericPostRequest__(url, [])
+        return rData
+
+class fidelisThreatBridge:
+
+    def __init__(self, ip, port, useSSL, ignoressl, apiKey):
+        if useSSL:
+            protocol = "https"
+        else:
+            protocol = "http"
+        self.apiKey = apiKey
+        self.baseURL = "{0}://{1}:{2}/ThreatBridgeService".format(protocol, ip, port)
+        self.headers = None
+        self.ignoressl = ignoressl
+        if self.ignoressl:
+            self.checkURL = False
+        else:
+            self.checkURL = True
+        self.lastError = ""
+
+    def __genericGetRequest__(self, url):
+        if "?" in url:
+            url += "&apiKey={0}".format(self.apiKey)
+        else:
+            url += "?apiKey={0}".format(self.apiKey)
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
@@ -692,87 +397,788 @@ class fidelisEndpoint:
                 rData = json.loads(r.content.decode("utf-8"))
             else:
                 rData = json.loads(r.content)
-        except Exception as err:
-            self.lastError = err
-            return None
-        if rData["success"] == False:
-            self.lastError = rData["error"]
-            return None
-        try:
             return rData
         except Exception as err:
-            self.lastError = err
-            return None
+            return {"success": False, "error": err}
 
-    def searchEvents(self, searchCriteria, limit):
-        url = "{0}/v2/events?pageSize={1}".format(self.baseURL, limit)
+    def __genericDeleteRequest__(self, url, data):
+        if "?" in url:
+            url += "&apiKey={0}".format(self.apiKey)
+        else:
+            url += "?apiKey={0}".format(self.apiKey)
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
         try:
-            r = requests.post(url, headers = headers, data = json.dumps(searchCriteria), verify=self.checkURL)
+            if data:
+                r = requests.delete(url, headers = headers, data = json.dumps(data), verify=self.checkURL)
+            else:
+                r = requests.delete(url, headers = headers, verify=self.checkURL)
             if type(r.content) == bytes:
-                rData = json.loads(r.content.decode("UTF-8"))
+                rData = json.loads(r.content.decode("utf-8"))
             else:
                 rData = json.loads(r.content)
+            return rData
         except Exception as err:
-            self.lastError = err
-            return None
-        try:
-            if rData["success"] == False:
-                self.lastError = rData["error"]
-                return None
-            try:
-                return rData["data"]["events"]
-            except Exception as err:
-                self.lastError = err
-                return None
-        except Exception as err:
-            self.lastError = err
-            return None
+            return {"success": False, "error": err}
 
-class fidelisNetwork:
-    def __init__(self, host, username, password):
-        self.lastError = ""
-        self.lastSuccess = ""
-        self.host = host
-        self.username = username
-        self.password = password
-        self.headers = {"Content-Type": "text/tab-separated-summary-urlencode-values"}
-        self.baseURL = "https://{0}/query/<cgi_name>.cgi?user={1}&pass={2}".format(self.host, self.username, self.password)
-
-    def __findWithSearchCriteria__(self, url, searchCriteria, limit):
-        url = "{0}&amount={1}".format(url, limit)
+    def __genericPostRequest__(self, url, data):
+        if "?" in url:
+            url += "&apiKey={0}".format(self.apiKey)
+        else:
+            url += "?apiKey={0}".format(self.apiKey)
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
         headers = self.headers
-        if searchCriteria and len(searchCriteria) > 0:
-            url = "{0}&{1}".format(url, searchCriteria)
         try:
-            r = requests.get(url, headers = headers, verify=self.checkURL)
+            r = requests.post(url, headers = headers, data = json.dumps(data), verify=self.checkURL)
+            if type(r.content) == bytes:
+                rData = json.loads(r.content.decode("utf-8"))
+            else:
+                rData = json.loads(r.content)
+            return rData
+        except Exception as err:
+            return {"success": False, "error": err}
+
+    def __genericPutRequest__(self, url, data):
+        if "?" in url:
+            url += "&apiKey={0}".format(self.apiKey)
+        else:
+            url += "?apiKey={0}".format(self.apiKey)
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
+        headers = self.headers
+        try:
+            r = requests.put(url, headers = headers, data = json.dumps(data), verify=self.checkURL)
+            if type(r.content) == bytes:
+                rData = json.loads(r.content.decode("utf-8"))
+            else:
+                rData = json.loads(r.content)
+            return rData
+        except Exception as err:
+            return {"success": False, "error": err}
+
+    def getProductInfo(self):
+        url = "{0}/About".format(self.baseURL)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def count(self, listId, threatListsOnly):
+
+        ##########################################
+        # listId = string
+        # threatListOnly = boolean
+        ##########################################
+
+        url = "{0}/Count".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def globalStats(self, resetDaily, resetTotal):
+
+        ##########################################
+        # resetDaily = boolean
+        # resetTotal = boolean
+        ##########################################
+
+        url = "{0}/GlobalStats".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def hello(self):
+        url = "{0}/Hello".format(self.baseURL)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def help(self, apiName, showParameters):
+
+        ##########################################
+        # apiName = string
+        # showParameters = boolean
+        ##########################################
+
+        url = "{0}/Help".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def isAlive(self):
+
+        url = "{0}/IsAlive".format(self.baseURL)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def isBusy(self):
+
+        url = "{0}/IsBusy".format(self.baseURL)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def options(self, threatListsOnly):
+
+        ##########################################
+        # threatListsOnly = boolean
+        ##########################################
+
+        url = "{0}/Options".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def addList(self, listData):
+
+        ##########################################
+        # listData = dictionary
+        ##########################################
+        self.headers = {"Content-Type": "application/json"}
+        url = "{0}/AddList".format(self.baseURL)
+        rData = self.__genericPutRequest__(url, listData)
+        self.headers = None
+        return rData
+
+    def deleteList(self, listId):
+        
+        ##########################################
+        # listId = string
+        ##########################################
+
+        url = "{0}/DeleteList".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericDeleteRequest__(url, None)
+        return rData
+
+    def deleteLists(self, listIds):
+
+        ##########################################
+        # listIds = list
+        ##########################################
+
+        self.headers = {"Content-Type": "application/json"}
+        url = "{0}/DeleteLists".format(self.baseURL)
+        rData = self.__genericPutRequest__(url, listIds)
+        self.headers = None
+        return rData
+
+    def deleteListHistory(self, listId):
+        
+        ##########################################
+        # listId = string
+        ##########################################
+
+        url = "{0}/DeleteListHistory".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericDeleteRequest__(url, None)
+        return rData
+
+    def disableList(self, listId):
+
+        ##########################################
+        # listId = string
+        ##########################################
+        url = "{0}/DisableList".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericPutRequest__(url, "")
+        return rData
+
+    def disableLists(self, listIds):
+
+        ##########################################
+        # listId = listIds
+        ##########################################
+        self.headers = {"Content-Type": "application/json"}
+        url = "{0}/DisableLists".format(self.baseURL)
+        rData = self.__genericPutRequest__(url, listIds)
+        self.headers = None
+        return rData
+
+    def enableList(self, listId):
+
+        ##########################################
+        # listId = string
+        ##########################################
+        url = "{0}/EnableList".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericPutRequest__(url, "")
+        return rData
+
+    def enableLists(self, listIds):
+
+        ##########################################
+        # listId = listIds
+        ##########################################
+        self.headers = {"Content-Type": "application/json"}
+        url = "{0}/EnableLists".format(self.baseURL)
+        rData = self.__genericPutRequest__(url, listIds)
+        self.headers = None
+        return rData
+
+    def list(self, listId):
+
+        ##########################################
+        # listId = string
+        ##########################################
+
+        url = "{0}/List".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def lists(self, simple, threatListsOnly):
+
+        ##########################################
+        # simple = boolean
+        # threatListsOnly = boolean
+        ##########################################
+
+        url = "{0}/Lists".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def listCount(self, listId, threatListsOnly):
+
+        ##########################################
+        # listId = string
+        # threatListsOnly = boolean
+        ##########################################
+
+        url = "{0}/ListCount".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def stats(self, listId, threatListsOnly):
+
+        ##########################################
+        # listId = string
+        # threatListsOnly = boolean
+        ##########################################
+
+        url = "{0}/Stats".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def updateList(self, force, listId):
+
+        ##########################################
+        # force = boolean
+        # listId = string
+        ##########################################
+
+        url = "{0}/UpdateList".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def updateLists(self, listIds):
+
+        ##########################################
+        # listIds = list
+        ##########################################
+        url = "{0}/UpdateLists".format(self.baseURL)
+        self.headers = {"Content-Type": "application/json"}
+        rData = self.__genericPutRequest__(url, listIds)
+        self.headers = None
+        return rData
+
+    def updateListContents(self, append, listId, files):
+
+        ##########################################
+        # append = boolean
+        # listId = string
+        # files = dictionary of files: {"filename": open("filename", "rb")}
+        ##########################################
+
+        url = "{0}/updatelistcontents/{1}?apiKey={2}".format(self.baseURL, listId, self.apiKey)
+        try:
+            r = requests.put(url, headers = self.headers, files = files, data = None, verify=self.checkURL)
+            if type(r.content) == bytes:
+                rData = json.loads(r.content.decode("utf-8"))
+            else:
+                rData = json.loads(r.content)
+            return rData
+        except Exception as err:
+            return {"success": False, "error": err}
+
+    def updateListProperties(self, updatedFeed):
+
+        ##########################################
+        # updatedFeed = dictionary
+        ##########################################
+        url = "{0}/UpdateListProperties".format(self.baseURL)
+        self.headers = {"Content-Type": "application/json"}
+        rData = self.__genericPutRequest__(url, updatedFeed)
+        self.headers = None
+        return rData
+
+    def validateList(self, listData):
+
+        ##########################################
+        # updatedFeed = dictionary
+        ##########################################
+        url = "{0}/ValidateList".format(self.baseURL)
+        self.headers = {"Content-Type": "application/json"}
+        rData = self.__genericPutRequest__(url, listData)
+        self.headers = None
+        return rData
+
+    def viewListHistory(self, firstRecord, listId, maxResults):
+        
+        ##########################################
+        # firstRecord = Int32
+        # listId = string
+        # maxResults = Int32
+        ##########################################
+
+        url = "{0}/ViewListHistory".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def addRecord(self, recordData, listId):
+
+        ##########################################
+        # recordData = list
+        # listId = string
+        ##########################################
+
+        url = "{0}/AddRecord?listid={1}".format(self.baseURL, listId)
+        self.headers = {"Content-Type": "application/json"}
+        rData = self.__genericPutRequest__(url, recordData)
+        self.headers = None
+        return rData
+
+    def deleteListRecord(self, recordsIds, listId):
+        
+        ##########################################
+        # recordsIds = list
+        # listId = string
+        ##########################################
+
+        self.headers = {"Content-Type": "application/json"}
+        url = "{0}/DeleteRecord?listId={1}".format(self.baseURL, listId)
+        rData = self.__genericDeleteRequest__(url, recordsIds)
+        self.headers = None
+        return rData
+
+    def deleteListRecords(self, listId):
+        
+        ##########################################
+        # listId = string
+        ##########################################
+        url = "{0}/DeleteListRecords?listId={1}".format(self.baseURL, listId)
+        rData = self.__genericDeleteRequest__(url, None)
+        return rData
+
+    def deleteRecordModification(self, itemId, listId):
+        
+        ##########################################
+        # listId = string
+        # itemId = string
+        ##########################################
+
+        url = "{0}/DeleteListRecords".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params":
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericDeleteRequest__(url, None)
+        return rData
+
+    def listRecords(self, ascending, firstRecord, itemId, listId, maxResults, orderBy, simple, threatListsOnly):
+
+        ##########################################
+        # ascending = boolean
+        # firstRecord - Int32
+        # itemId = string
+        # listId = string
+        # maxResults = Int32
+        # orderBy = string
+        # simple = boolean
+        # threatListsOnly = boolean
+        ##########################################
+
+        url = "{0}/ListRecords".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params" and x is not None:
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def modifyRecord(self, recordData):
+
+        ##########################################
+        # recordData = dictionary
+        ##########################################
+
+        url = "{0}/ModifyRecord".format(self.baseURL)
+        self.headers = {"Content-Type": "application/json"}
+        rData = self.__genericPutRequest__(url, recordData)
+        self.headers = None
+        return rData
+
+    def viewRecordModifications(self, firstRecord, listId, maxResults):
+
+        ##########################################
+        # firstRecord - Int32
+        # listId = string
+        # maxResults = Int32
+        ##########################################
+
+        url = "{0}/ViewRecordModifications".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params" and x is not None:
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def search(self, address, ascending, email, hash, indexId, listId, mutex, orderBy):
+
+        ##########################################
+        # address = string
+        # ascending - boolean
+        # email = string
+        # hash = string
+        # indexId = string
+        # listId = string
+        # mutex = string
+        # orderBy = string
+        ##########################################
+
+        url = "{0}/Search".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params" and x is not None:
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def batchSearch(self, searchData):
+
+        ##########################################
+        # searchData = dictionary
+        ##########################################
+
+        url = "{0}/BatchSearch".format(self.baseURL)
+        self.headers = {"Content-Type": "application/json"}
+        rData = self.__genericPutRequest__(url, searchData)
+        self.headers = None
+        return rData
+
+    def wildcardSearch(self, address, ascending, email, hash, indexId, listId, mutex, orderBy):
+
+        ##########################################
+        # address = string
+        # ascending - boolean
+        # email = string
+        # hash = string
+        # indexId = string
+        # listId = string
+        # mutex = string
+        # orderBy = string
+        ##########################################
+
+        url = "{0}/WildcardSearch".format(self.baseURL)
+        params = []
+        for x in locals():
+            if x is not "self" and x is not "url" and x is not "params" and x is not None:
+                params.append(x)
+        for x in params:
+            if locals()[x]:
+                if "?" in url:
+                    url += "&{0}={1}".format(x, locals()[x])
+                else:
+                    url += "?{0}={1}".format(x, locals()[x])
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def feedParsers(self):
+
+        url = "{0}/FeedParsers".format(self.baseURL)
+        rData = self.__genericGetRequest__(url)
+        return rData
+
+    def testFeedParser(self, feedData):
+
+        ##########################################
+        # recordData = dictionary
+        ##########################################
+
+        url = "{0}/TestFeedParser".format(self.baseURL)
+        self.headers = {"Content-Type": "application/json"}
+        rData = self.__genericPutRequest__(url, feedData)
+        self.headers = None
+        return rData
+
+class fidelisNetwork():
+
+    def __init__(self, ip, username, password, useuid, ignoressl):
+        self.baseURL = "https://{0}/query".format(ip)
+        self.username = username
+        self.password = password
+        self.headers = None
+        self.ignoressl = ignoressl
+        if self.ignoressl:
+            self.checkURL = False
+        else:
+            self.checkURL = True
+        if useuid:
+            self.uid = self.getAuthToken(username, password)
+        else:
+            self.uid = None
+        self.lastError = ""
+
+    def getAuthToken(self, username, password):
+        
+        #Create the authentication URL
+        url = "{0}/login.cgi?user={1}&pass={2}".format(self.baseURL, username, password)
+
+        #Ignore SSL errors if specified
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
+        try:
+            r = requests.get(url, verify=self.checkURL)
+            if type(r.content) == bytes:
+                rData = r.content.decode("utf-8")
+            else:
+                rData = r.content
+        except Exception as err:
+            self.lastError = "Error performing get request to URL- {0}".format(err)
+            return None
+        try:
+            columns = rData.split("\n")[0].split("\t")
+            entries = rData.split("\n")[1:-1]
+            data = []
+            for entry in entries:
+                predata = entry.split("\t")
+                item = {}
+                for x in range(0, len(columns)):
+                    item[columns[x]] = predata[x]
+                data.append(item)
+            jsonReturn = {"success": True, "error": None, "data": data}
+            return jsonReturn["data"][0]["uid"]
         except Exception as err:
             self.lastError = err
             return None
-        returnedData = {"data":[], "lowestID":0, "highestID":0, "count":0}
-        raw = r.content.decode("utf-8")
-        raw = unquote(raw)
-        rawLines = raw.splitlines()
-        headers = rawLines[0].split("\t")
-        rawLines.remove(rawLines[0])
-        for line in rawLines:
-            line = line.split("\t")
-            dataItem = {}
-            for x in range(len(line)):
-                dataItem[headers[x]] = line[x]
-            returnedData["data"].append(dataItem)
-            returnedData["count"] = returnedData["count"] + 1
-        returnedData["highestID"] = int(returnedData["data"][0]["alertID"])
-        returnedData["lowestID"] = int(returnedData["data"][-1]["alertID"])
-        return returnedData
 
+    def execute(self, query, inputData):
 
-    def searchAlerts(self, searchCriteria, limit):
-        url = self.baseURL.replace("<cgi_name>", "aac_alerts")
-        data = self.__findWithSearchCriteria__(url, searchCriteria, limit)
-        return data
+        ##############################################################################################
+        # query = string (the cgi name to perform, for example aac_alerts)
+        # inputData = dictionary (parameter and value pairs to pass into the query
+        #
+        # =========
+        # EXAMPLE:
+        # =========
+        #
+        # query = "aac_alerts"
+        #
+        # inputData = {"alert_id": "29482"}
+        # 
+        # 
+        # the data returned is always in JSON format and has the following structure:
+        # 
+        # {"success": <True|False>, "error": <error-msg-if-any>, "data": <data-returned-by-call>}
+        # 
+        ##############################################################################################
+
+        if self.uid is not None:
+            url = "{0}/{1}.cgi?uid={2}".format(self.baseURL, query, self.uid)
+        else:
+            url = "{0}/{1}.cgi?user={2}&pass={3}".format(self.baseURL, query, self.username, self.password)
+
+        #Populate the input_parameters on the URL
+        if inputData is not None:
+            for k in inputData:
+                url+= "&{0}={1}".format(k, inputData[k])
+
+        #Ignore SSL errors if specified
+        if self.ignoressl:
+            requests.packages.urllib3.disable_warnings()
+
+        try:
+            #Perform the get request
+            r = requests.get(url, verify=self.checkURL)
+            
+            #Decode from utf-8 if encoded
+            if type(r.content) == bytes:
+                rData = r.content.decode("utf-8")
+            else:
+                rData = r.content
+
+            #Remove HTML encoding
+            rData = unquote(rData)
+        except Exception as err:
+            self.lastError = "Error performing get request to URL- {0}".format(err)
+            return err
+        try:
+            columns = rData.split("\n")[0].split("\t")
+            entries = rData.split("\n")[1:-1]
+            data = []
+            for entry in entries:
+                predata = entry.split("\t")
+                item = {}
+                for x in range(0, len(columns)):
+                    item[columns[x]] = predata[x]
+                data.append(item)
+            jsonReturn = {"success": True, "error": None, "data": data}
+            return jsonReturn
+        except Exception as err:
+            return err
         
