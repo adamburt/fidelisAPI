@@ -1,10 +1,11 @@
-# fidelisAPI
+# Overview
+___
 ## Python library for Fidelis API commands
 
 This repository contains libraries for use with Fidelis Cybersecurity technologies
 
 *The libraries are developed outside of Fidelis and are not endorsed by Fidelis*
-
+___
 ## General Use
 
 Within the .py file are 3 classes:
@@ -30,7 +31,7 @@ tbFeeds = tb.lists(True, False)
 ```
 
 For a description of each of the inputs for the instatiation, please see the relevant section below.
-
+___
 ## Fidelis Endpoint
 
 Instatiation:
@@ -47,7 +48,7 @@ When instantiated, there are 5 inputs that are required:
 - <password> - (*string*) Password for the username above
 - <authMethod> - (*string*) Either "post" or "get" and determines how authentication is carried out
 - <ignoressl> - (*boolean*) Either *True* or *False* and determines whether to ignore SSL errors
-  
+___
 ## Fidelis Network
 
 Instatiation:
@@ -65,7 +66,7 @@ When instantiated, there are 5 inputs that are required:
 - <password> - (*string*) Password for the username above
 - <useuid> - (*boolean*) Either *True* or *False* and determines whether to use a generated uid for queries after authentication
 - <ignoressl> - (*boolean*) Either *True* or *False* and determines whether to ignore SSL errors
-  
+___
 ## Fidelis ThreatBridge
 
 Instatiation:
@@ -82,3 +83,10 @@ When instantiated, there are 4 inputs that are required:
 - <usessl> - (*boolean*) Either *True* or *False* and determines whether to use `http://` or `https://` in queries
 - <ignoressl> - (*boolean*) Either *True* or *False* and determines whether to ignore SSL errors
 - <apikey> - (*string*) API Key used for authentication
+___
+# API Commands
+
+Each API class has its set of own commands. Feel free to browse them and refer to the relevant API documentation from Fidelis on varying input parameters.
+
+The exception here is the **Fidelis Network** API. This really only has 1 command that accepts varying *"queries"* as outlined in the API documentation.
+___
