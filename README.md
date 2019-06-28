@@ -41,7 +41,7 @@ fep = fidelisAPI.fidelisEndpoint(<host>, <username>, <password>, <authMethod>, <
 
 ```
 
-When instantiated, there are 5 inputs that are required:
+When instantiated, there are 6 inputs that are required:
 
 - <host> - (*string*) This is the hostname or IP address of the Web UI Server
 - <username> - (*string*) Username with the correct permissions to access API commands
