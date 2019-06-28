@@ -1068,27 +1068,30 @@ class fidelisThreatBridge:
 
 class fidelisNetwork():
 
-    def __init__(self, host, username, password, useuid, ignoressl):
+    def __init__(self, host, username, password, uid, useuid, ignoressl):
+
         self.baseURL = "https://{0}/query".format(host)
-        self.username = username
-        self.password = password
+        if username:
+            self.username = quote(username)
+        if password:
+            self.password = quote(password)
+        self.uid = uid
+        self.useuid = useuid
         self.headers = None
         self.ignoressl = ignoressl
         if self.ignoressl:
             self.checkURL = False
         else:
             self.checkURL = True
-        if useuid:
-            self.uid = self.getAuthToken(username, password)
-        else:
-            self.uid = None
+        if self.useuid is True and uid is None:
+            self.uid = self.getAuthToken(self.username, self.password)
         self.lastError = ""
 
     def getAuthToken(self, username, password):
         
         #Create the authentication URL
         url = "{0}/login.cgi?user={1}&pass={2}".format(self.baseURL, username, password)
-
+        
         #Ignore SSL errors if specified
         if self.ignoressl:
             requests.packages.urllib3.disable_warnings()
@@ -1116,6 +1119,10 @@ class fidelisNetwork():
         except Exception as err:
             self.lastError = err
             return None
+
+    def showUID(self):
+        print(self.uid)
+        exit(0)
 
     def execute(self, query, inputData):
 
