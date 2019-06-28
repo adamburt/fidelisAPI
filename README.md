@@ -21,7 +21,7 @@ As they are named, they are used to access various API calls from each of the te
 import fidelisAPI
 
 fep = fidelisAPI.fidelisEndpoint(<host>, <username>, <password>, <authMethod>, <ignoressl>)
-fnw = fidelisAPI.fidelisNetwork(<host>, <username>, <password>, <useuid>, <ignoressl>)
+fnw = fidelisAPI.fidelisNetwork(<host>, <username>, <password>, <uid>, <useuid>, <ignoressl>)
 tb = fidelisAPI.fidelisThreatBridge(<host>, <usessl>, <ignoressl>, <apikey>)
 
 fepAlerts = fep.getAlerts(None, None, None, None, None, None)
@@ -64,8 +64,28 @@ When instantiated, there are 5 inputs that are required:
 - <host> - (*string*) This is the hostname or IP address of the CommandPost
 - <username> - (*string*) Username with the correct permissions to access API commands
 - <password> - (*string*) Password for the username above
+- <uid> - (*string*) If you already know your UID, you can use it in calls rather than username and password
 - <useuid> - (*boolean*) Either *True* or *False* and determines whether to use a generated uid for queries after authentication
 - <ignoressl> - (*boolean*) Either *True* or *False* and determines whether to ignore SSL errors
+  
+When **authenticating** for the first time, you can obtain your **unique uid** (until you change your password) through the following method (*as an example)*:
+
+```python
+import fidelisAPI
+
+fnw = fidelisAPI.fidelisNetwork(<host>, <username>, <password>, <uid>, <useuid>, <ignoressl>)
+
+uid = fnw.showUID()
+
+```
+Instatiation of following fidelisNetwork classes can then be done by providing your UID into the first call:
+
+```python
+
+fnw = fidelisAPI.fidelisNetwork(<host>, None, None, <uid>, True, <ignoressl>)
+
+```
+
 ___
 ## Fidelis ThreatBridge
 
