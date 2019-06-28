@@ -31,6 +31,8 @@ tbFeeds = tb.lists(True, False)
 ```
 
 For a description of each of the inputs for the instatiation, please see the relevant section below.
+
+For a description of all the possible functions within each class, refer to the Fidelis API documentation and correlate with the functions in this library. They are similarly named.
 ___
 ## Fidelis Endpoint
 
@@ -106,7 +108,16 @@ When instantiated, there are 4 inputs that are required:
 ___
 # API Commands
 
-Each API class has its set of own commands. Feel free to browse them and refer to the relevant API documentation from Fidelis on varying input parameters.
+Each API class has its set of own commands. Feel free to browse them and refer to the relevant Fidelis API documentation. Generally the function names closely represent the functions available through the official APIs. The **exception** here is for **Fidelis Network**.
 
-The exception here is the **Fidelis Network** API. This really only has 1 command that accepts varying *"queries"* as outlined in the API documentation.
+This really only has 1 command that accepts varying *"queries"* as outlined in the API documentation. For example; the API documentation for 9.1 for Network states that to execute a command to show all alerts, one would have to call:
+
+`https://<commandpost>/query/aac_alerts.cgi?user=<username>&pass=<password>&<param>=<value>&<param>=<value>&.....&<param>=<value>`
+
+To make this easier (and not re-write ALL of the API commands) one simply places the cgi reference name in the call with the commands required:
+
+```python
+alerts = fnw.execute("aac_alerts", {<"param" : "value" pairs go in here in a dictionary>})
+```
+
 ___
