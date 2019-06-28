@@ -116,8 +116,19 @@ This really only has 1 command that accepts varying *"queries"* as outlined in t
 
 To make this easier (and not re-write ALL of the API commands) one simply places the cgi reference name in the call with the commands required:
 
-```python
-alerts = fnw.execute("aac_alerts", {<"param" : "value" pairs go in here in a dictionary>})
+`alerts = fnw.execute("aac_alerts", {"param" : "value"}) ` <- Notice the use of a dictionary to define param / value pairs
+
+They map simply as follows:
+
 ```
+https://<commandpost>/query/<cgi_name>.cgi?user=<username>&pass=<password>&<param>=<value>
+                                ^                                              ^       ^
+                                |                                              |       |
+                                |           /---------------------------------/        |
+                                |           |       /---------------------------------/
+                                |           |       |
+        data = fnw.execute(<cgi_name>, {"param": "value"}
+```
+
 
 ___
