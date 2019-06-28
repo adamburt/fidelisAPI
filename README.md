@@ -68,21 +68,21 @@ When instantiated, there are 5 inputs that are required:
 - <useuid> - (*boolean*) Either *True* or *False* and determines whether to use a generated uid for queries after authentication
 - <ignoressl> - (*boolean*) Either *True* or *False* and determines whether to ignore SSL errors
   
-When **authenticating** for the first time, you can obtain your **unique uid** (until you change your password) through the following method (*as an example)*:
+When **authenticating** for the first time, you can obtain your **unique uid** (until you change your password) through the following method (*as an example* - Required items are marked with an asterisk \*):
 
 ```python
 import fidelisAPI
 
-fnw = fidelisAPI.fidelisNetwork(<host>, <username>, <password>, <uid>, <useuid>, <ignoressl>)
+fnw = fidelisAPI.fidelisNetwork(<host>*, <username>*, <password>*, <uid>, <useuid>, <ignoressl>)
 
 uid = fnw.showUID()
 
 ```
-Instatiation of following fidelisNetwork classes can then be done by providing your UID into the first call:
+Instatiation of following fidelisNetwork classes can then be done by providing your UID into the first call (Required items are marked with an asterisk \*):
 
 ```python
 
-fnw = fidelisAPI.fidelisNetwork(<host>, None, None, <uid>, True, <ignoressl>)
+fnw = fidelisAPI.fidelisNetwork(<host>*, None*, None*, <uid>*, True*, <ignoressl>)
 
 ```
 
